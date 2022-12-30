@@ -316,6 +316,216 @@ void MixColumn(char state[][])
             state[1][j]^=state[2][j];
         }
     }
+// encryption function of Skinny
+public static void dec(byte[] input_U, byte[] userkey_U, int ver) {
+    byte[][] state_U = new byte[4][4];
+    byte[][] dummy_U = new byte[4][4];
+    String8 keyCells_U = new String8(3, 4, 4);
+	keyCells_U.fill(0, 48, (byte)0);
+
+
+    for(int i = 0; i < 16; i++) {
+        if(versions[ver][0] == 64) {
+            if((i & 1) != 0) {
+                state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i >> 1]) & 0xF);
+                keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i >> 1]) & 0xF);
+                if(versions[ver][1] >= 128) {
+                    keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16 >> 1]) & 0xF);
+                }
+                if(versions[ver][1] >= 192) {
+                    keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32 >> 1]) & 0xF);
+                }
+            }
+
+            else {
+                state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i >> 1]) >> 4 & 0xF);
+                keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i >> 1]) >> 4 & 0xF);
+                if(versions[ver][1] >= 128) {
+                    keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16 >> 1]) >> 4 & 0xF);
+                }
+                if(versions[ver][1] >= 192) {
+                    keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32 >> 1]) >> 4 & 0xF);
+                }
+            }
+        }
+
+            else if(versions[ver][0] == 128) {
+                state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i]) & 0xFF);
+
+                keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i]) & 0xFF);
+                if(versions[ver][1] >= 256) {
+                    keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16]) & 0xFF);
+                }
+                if(versions[ver][1] >= 384) {
+                    keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32]) & 0xFF);
+                }
+            }
+        }
+
+            for(i = versions[ver][2]-1; i >=0 ; i--){
+                AddKey(dummy, keyCells, ver);
+            }
+            
+            System.out.printf("DEC - initial state:                     ");
+            display_cipher_state(state,keyCells,ver);
+            System.out.printf("\n");
+
+            for(i = versions[ver][2]-1; i >=0 ; i--){
+                MixColumn_inv(state);
+                    //#ifdef DEBUG
+                    System.out.printf("DEC - round %.2i - after MixColumn_inv:    ",i);
+                    display_cipher_state(state,keyCells,ver);
+                    printf("\n");
+                    //#endif
+                ShiftRows_inv(state);
+                    //#ifdef DEBUG
+                    System.out.printf("DEC - round %.2i - after ShiftRows_inv:    ",i);
+                    display_cipher_state(state,keyCells,ver);
+                    System.out.printf("\n");
+                    //#endif
+                AddKey_inv(state, keyCells, ver);
+                    //#ifdef DEBUG
+                    System.out.printf("DEC - round %.2i - after AddKey_inv:       ",i);
+                    display_cipher_state(state,keyCells,ver);
+                    System.out.printf("\n");
+                    //#endif
+                AddConstants(state, i);
+                    //#ifdef DEBUG
+                    System.out.printf("DEC - round %.2i - after AddConstants_inv: ",i);
+                    display_cipher_state(state,keyCells,ver);
+                    System.out.printf("\n");
+                    //#endif
+                if (versions[ver][0]==64)
+                    SubCell4_inv(state);
+                else
+                    SubCell8_inv(state);
+                    //#ifdef DEBUG
+                    System.out.printf("DEC - round %.2i - after SubCell_inv:      ",i);
+                    display_cipher_state(state,keyCells,ver);
+                    System.out.printf("\n");
+                    //#endif
+            }
+           // #ifdef DEBUG
+            System.out.printf("DEC - final state:                       ");
+            display_cipher_state(state,keyCells,ver);
+            System.out.printf("\n");
+           // #endif
+
+           if(versions[ver][0] == 64) {
+			for(int i = 0; i < 8; i++) {
+				input_U[i] = (byte)((Byte.toUnsignedInt(state_U[2 * i >> 2][2 * i & 0x3]) & 0xF) << 4 | Byte.toUnsignedInt(state_U[2 * i + 1 >> 2][2 * i + 1 & 0x3]) & 0xF);
+			    }
+            } 
+            else if(versions[ver][0] == 128) {
+			    for(int i = 0; i < 16; i++) {
+				input_U[i] = (byte)(Byte.toUnsignedInt(state_U[i >> 2][i & 0x3]) & 0xFF);
+			    }
+		    }
+        }
+
+public static void enc(byte[] input_U, byte[] userkey_U, int ver) {
+    byte[][] state_U = new byte[4][4];
+    byte[][][] keyCells_U = new byte[3][4][4];
+
+
+    for(int i = 0; i < 16; i++) {
+        if(versions[ver][0] == 64) {
+            if((i & 1) != 0) {
+                state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i >> 1]) & 0xF);
+                keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i >> 1]) & 0xF);
+                if(versions[ver][1] >= 128) {
+                    keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16 >> 1]) & 0xF);
+                }
+                if(versions[ver][1] >= 192) {
+                    keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32 >> 1]) & 0xF);
+                }
+            }
+        
+            else
+            {
+                state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i >> 1]) >> 4 & 0xF);
+				keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i >> 1]) >> 4 & 0xF);
+					if(versions[ver][1] >= 128) {
+						keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16 >> 1]) >> 4 & 0xF);
+					}
+					if(versions[ver][1] >= 192) {
+						keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32 >> 1]) >> 4 & 0xF);
+					}
+            }
+        }
+
+        else if (versions[ver][0]==128){
+        state_U[i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(input_U[i]) & 0xFF);
+        keyCells_U[0][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i]) & 0xFF);
+
+            if(versions[ver][1] >= 256) {
+                keyCells_U[1][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 16]) & 0xFF);
+            }
+
+            if(versions[ver][1] >= 384) {
+                keyCells_U[2][i >> 2][i & 0x3] = (byte)(Byte.toUnsignedInt(userkey_U[i + 32]) & 0xFF);
+            }
+        }
+    }
+    //#ifdef DEBUG
+    System.out.printf("ENC - initial state:                 ");
+    display_cipher_state(state,keyCells,ver);
+    System.out.printf("\n");
+    //#endif
+
+	
+	for(i = 0; i < versions[ver][2]; i++){
+        if (versions[ver][0]==64)
+            SubCell4(state);
+        else
+            SubCell8(state);
+            //#ifdef DEBUG
+            System.out.printf("ENC - round %.2i - after SubCell:      ",i);
+            display_cipher_state(state,keyCells,ver);
+            System.out.printf("\n");
+            //#endif
+        AddConstants(state, i);
+           // #ifdef DEBUG
+           System.out.printf("ENC - round %.2i - after AddConstants: ",i);
+           display_cipher_state(state,keyCells,ver);
+           System.out.printf("\n");
+           // #endif
+        AddKey(state, keyCells, ver);
+           // #ifdef DEBUG
+           System.out.printf("ENC - round %.2i - after AddKey:       ",i);
+           display_cipher_state(state,keyCells,ver);
+           System.out.printf("\n");
+            //#endif
+        ShiftRows(state);
+           // #ifdef DEBUG
+           System.out.printf("ENC - round %.2i - after ShiftRows:    ",i);
+           display_cipher_state(state,keyCells,ver);
+           System.out.printf("\n");
+           // #endif
+        MixColumn(state);
+            //#ifdef DEBUG
+            System.out.printf("ENC - round %.2i - after MixColumn:    ",i);
+            display_cipher_state(state,keyCells,ver);
+            System.out.printf("\n");
+           // #endif
+	}  //The last subtweakey should not be added
+	//#ifdef DEBUG
+    System.out.printf("ENC - final state:                   ");
+    display_cipher_state(state,keyCells,ver);
+    System.out.printf("\n");
+    //#endif
+
+    if(versions[ver][0] == 64) {
+        for(i = 0; i < 8; i++) {
+            input_U[i] = (byte)((Byte.toUnsignedInt(state_U[2 * i >> 2][2 * i & 0x3]) & 0xF) << 4 | Byte.toUnsignedInt(state_U[2 * i + 1 >> 2][2 * i + 1 & 0x3]) & 0xF);
+        }
+    } 
+    else if(versions[ver][0] == 128) {
+        for(i = 0; i < 16; i++) {
+            input_U[i] = (byte)(Byte.toUnsignedInt(state_U[i >> 2][i & 0x3]) & 0xFF);
+        }
+    }
+}
 
         // generate test vectors for all the versions of Skinny
     void TestVectors(int ver)
