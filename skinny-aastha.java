@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.Random;
 public class SKINNY { 
 
     int versions[][]={{64,64,32},{64,128,36},{64,192,40},{128,128,40},{128,256,48},{128,384,56}};
@@ -315,3 +316,43 @@ void MixColumn(char state[][])
             state[1][j]^=state[2][j];
         }
     }
+
+        // generate test vectors for all the versions of Skinny
+    void TestVectors(int ver)
+    {
+        char p[];
+        char c[];
+        char k[];
+        int n;
+
+        int i;
+        for(i = 0; i < (versions[ver][0]>>3); i++) c[i] = p[i] = (char)Math.random() & 0xff;
+        for(i = 0; i < (versions[ver][1]>>3); i++) k[i] = (char)Math.random() & 0xff;
+        System.out.printf("TK = "); for(i = 0; i < (versions[ver][1]>>3); i++) System.out.printf("%02x", k[i]); System.out.printf("\n");
+        System.out.printf("P =  "); for(i = 0; i < (versions[ver][0]>>3); i++) System.out.printf("%02x", p[i]); System.out.printf("\n");
+        enc(c,k,ver);
+        System.out.printf("C =  "); for(i = 0; i < (versions[ver][0]>>3); i++) System.out.printf("%02x", c[i]); System.out.printf("\n");
+        // dec(c,k,ver);
+        // printf("P' = "); for(i = 0; i < (versions[ver][0]>>3); i++) printf("%02x", c[i]); printf("\n\n");
+    }
+
+    int main() {
+        int i;
+        char name[];
+
+        RANDOM.setSeed(Integer.toUnsignedLong((int)(System.currentTimeMillis() / 1_000)));
+
+        System.out.printf("Enter the SKINNY Variant to test\n");
+        for(i = 0; Long.compareUnsigned(i, versions.length) < 0; i++) {
+			System.out.println((i + 1) + ": SKINNY-" + versions[i][0] + "-" + versions[i][1]);
+		}
+        int ver;
+		ver = STDIN_SCANNER.nextInt();
+		System.out.println("Running Skinny-" + versions[ver - 1][0] + "-" + versions[ver - 1][1]);
+        TestVectors(ver);
+    }
+
+    public final static Random RANDOM = new Random(1);
+    public final static Scanner STDIN_SCANNER = new Scanner(System.in);
+
+}
